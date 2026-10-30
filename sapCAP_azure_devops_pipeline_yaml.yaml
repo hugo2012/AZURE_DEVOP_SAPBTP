@@ -1,0 +1,37 @@
+trigger:
+  branches:
+    include:
+      - main
+      - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Dynamic build output location
+  buildOutputDir: '$(Build.ArtifactStagingDirectory)'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '18.x' # Adjust to your CAP project supported Node.js version
+  displayName: 'Use Node.js'
+
+- script: |
+    npm install -g @sap/cds-dk @sap/mbt
+  displayName: 'Install Global Dependencies (CAP CDS & MBT)'
+
+- script: |
+    npm ci
+  displayName: 'Install Project Dependencies'
+
+- script: |
+    mbt build -p=cf -s=. -t=$(buildOutputDir)
+  displayName: 'Build CAP MTA Archive (.mtar)'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(buildOutputDir)'
+    artifact: 'cap-mta-artifact'
+    publishLocation: 'pipeline'
+  displayName: 'Publish MTA Artifact'
